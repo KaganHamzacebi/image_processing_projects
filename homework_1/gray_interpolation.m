@@ -1,0 +1,189 @@
+clc;
+%get image
+img = imread('images/gray_image.jpg');
+
+%9, 10 ve 11. satırlardan test etmek istediğinizi uncomment yaparak test
+%edebilirsiniz. Default nearestNeigbor
+
+%img = nearestNeighborGRAY(img, 2);
+img = bilinearGRAY(img, 2);
+%img = bicubicGRAY(img, 2);
+
+imshow(img);
+
+%Nearest Neighbor Interpolation Function
+function [tmp] = nearestNeighborGRAY(img, ratio)
+    [cols, rows] = size(img);
+    w = floor(cols * ratio);
+    h = floor(rows * ratio);
+    tmp = zeros(w, h, 'uint8');
+    
+    for j = 1:h
+        for i = 1:w
+           
+            x = round(i / ratio);
+            y = round(j / ratio);
+            
+            x(x < 1) = 1;
+            x(x > cols - 1) = cols - 1;
+            y(y < 1) = 1;
+            y(y > rows - 1) = rows - 1;
+            
+            tmp(i , j) = img(x, y);
+        end
+    end
+end
+
+%Bilinear Interpolation Function
+function [tmp] = bilinearGRAY(img, ratio)
+    [cols, rows] = size(img);
+    w = floor(cols * ratio);
+    h = floor(rows * ratio);
+    tmp = zeros(w, h, 'uint8');
+    
+    for j = 1:h
+        for i = 1:w
+            
+            x_raw = i / ratio;
+            y_raw = j / ratio;
+            
+            x = floor(x_raw);
+            y = floor(y_raw);
+            
+            D_X1 = 1 - (x_raw - x);
+            D_X2 = 1 - (x + 1 - x_raw);
+            D_Y1 = 1 - (y_raw - y);
+            D_Y2 = 1 - (y + 1 - y_raw);
+            
+            D_X1(D_X1 == 0) = 0.1;
+            D_X2(D_X2 == 0) = 0.1;
+            D_Y1(D_Y1 == 0) = 0.1;
+            D_Y2(D_Y2 == 0) = 0.1;
+            
+            x(x < 1) = 1;
+            x(x > cols - 1) = cols - 1;
+            y(y < 1) = 1;
+            y(y > rows - 1) = rows - 1;
+            
+            %4 Neighbor Pixels
+            P1 = img(x, y);
+            P2 = img(x, y + 1);
+            P3 = img(x + 1, y);
+            P4 = img(x + 1, y + 1);
+            
+            %Distances
+            D1 = D_X1 * D_Y1;
+            D2 = D_X1 * D_Y2;
+            D3 = D_X2 * D_Y1;
+            D4 = D_X2 * D_Y2; 
+            
+            intensity = double(P1) * D1 + ...
+                        double(P2) * D2 + ...
+                        double(P3) * D3 + ...
+                        double(P4) * D4;
+            
+            tmp(i, j) = intensity;
+        end
+    end
+end
+
+%Bicubic Interpolation Function
+function [tmp] = bicubicGRAY(img, ratio)
+    [cols, rows] = size(img);
+    w = floor(cols * ratio);
+    h = floor(rows * ratio);
+    tmp = zeros(w, h, 'uint8');
+    
+    for j = 1:h
+        for i = 1:w
+            
+            x_raw = i / ratio;
+            y_raw = j / ratio;
+            
+            x = floor(x_raw);
+            y = floor(y_raw);
+            
+            D_X1 = (2 - (x_raw - x)) / 2;
+            D_X2 = (2 - (x + 1 - x_raw)) / 2;
+            D_X3 = (2 - (x + 2 - x_raw)) / 2;
+            D_X4 = (2 - (x_raw - (x - 1))) / 2;
+            
+            D_Y1 = (2 - (y_raw - y)) / 2;
+            D_Y2 = (2 - (y + 1 - y_raw)) / 2;
+            D_Y3 = (2 - (y + 2 - y_raw)) / 2;
+            D_Y4 = (2 - (y_raw - (y - 1))) / 2;
+            
+            D_X1(D_X1 == 0) = 0.1;
+            D_X2(D_X2 == 0) = 0.1;
+            D_X3(D_X3 == 0) = 0.1;
+            D_X4(D_X4 == 0) = 0.1;
+            D_Y1(D_Y1 == 0) = 0.1;
+            D_Y2(D_Y2 == 0) = 0.1;
+            D_Y3(D_Y3 == 0) = 0.1;
+            D_Y4(D_Y4 == 0) = 0.1;
+            
+            x(x < 2) = 2;
+            x(x > cols - 2) = cols - 2;
+            y(y < 2) = 2;
+            y(y > rows - 2) = rows - 2;
+            
+            %4 Neighbor Pixels
+            %inner rectangle
+            P1 = img(x, y);
+            P2 = img(x, y + 1);
+            P3 = img(x + 1, y);
+            P4 = img(x + 1, y + 1);
+            %outer rectangle
+            P5 = img(x - 1, y + 2);
+            P6 = img(x, y + 2);
+            P7 = img(x + 1, y + 2);
+            P8 = img(x + 2, y + 2);
+            P9 = img(x + 2, y + 1);
+            P10 = img(x + 2, y);
+            P11 = img(x + 2, y - 1);
+            P12 = img(x + 1, y - 1);
+            P13 = img(x, y - 1);
+            P14 = img(x - 1, y - 1);
+            P15 = img(x - 1, y);
+            P16 = img(x - 1, y + 1);
+            
+            %Distances
+            D1 = (D_X1 * D_Y1) / 4;
+            D2 = (D_X1 * D_Y2) / 4;
+            D3 = (D_X2 * D_Y1) / 4;
+            D4 = (D_X2 * D_Y2) / 4;
+            
+            D5 = (D_X4 * D_Y3) / 4;
+            D6 = (D_X1 * D_Y3) / 4;
+            D7 = (D_X2 * D_Y3) / 4;
+            D8 = (D_X3 * D_Y3) / 4; 
+            D9 = (D_X3 * D_Y2) / 4;
+            D10 = (D_X3 * D_Y1) / 4;
+            D11 = (D_X3 * D_Y4) / 4;
+            D12 = (D_X2 * D_Y4) / 4; 
+            D13 = (D_X1 * D_Y4) / 4;
+            D14 = (D_X4 * D_Y4) / 4;
+            D15 = (D_X4 * D_Y1) / 4;
+            D16 = (D_X4 * D_Y2) / 4; 
+            
+            intensity = double(P1) * D1 + ...
+                        double(P2) * D2 + ...
+                        double(P3) * D3 + ...
+                        double(P4) * D4 + ...
+                        double(P5) * D5 + ...
+                        double(P6) * D6 + ...
+                        double(P7) * D7 + ...
+                        double(P8) * D8 + ...
+                        double(P9) * D9 + ...
+                        double(P10) * D10 + ...
+                        double(P11) * D11 + ...
+                        double(P12) * D12 + ...
+                        double(P13) * D13 + ...
+                        double(P14) * D14 + ...
+                        double(P15) * D15 + ...
+                        double(P16) * D16;
+            
+            tmp(i, j) = intensity;
+        end
+    end
+end
